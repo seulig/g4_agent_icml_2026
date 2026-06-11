@@ -1,0 +1,97 @@
+# Episode Prompt B — Open-Ended + Mandatory Review Scaffold
+
+You have access to a Geant4 simulation of a Cherenkov detector module in glacial ice.
+
+## How to run the simulation
+
+Run from this directory:
+  cd /Users/steveneulig/geant4_projects/IceCubeSimulation/OMSim-fork/build
+
+Command:
+  ./OMSim_WavePID_study -n 50 --detector_type 3 --environment 2 \
+      -d <impact_parameter_m> -e 40 -p <particle> \
+      -o <absolute_output_path>
+
+Parameters:
+  -p   Particle type: mu-  or  e-
+  -d   Impact parameter in meters. Run at d = 10, 20, and 25 m.
+  -n   Number of events per run. Use 50.
+  -e   Primary particle energy in GeV. Use 40.
+
+Fixed flags (always include):
+  --detector_type 3    Standard DOM
+  --environment 2      SPICE glacial ice optical model
+
+Note: do not use --multithreading. Run single-threaded only.
+Note: do not run more than 2 simulation instances concurrently. Run at most 2 in
+      parallel, wait for them to finish before starting more.
+Note: the binary must be run from the directory specified in the cd command above;
+      use absolute paths for -o.
+Note: run at most 6 simulations in total (3 impact parameters x 2 particle types).
+
+## Simulation output
+
+Each run produces a ROOT file at <output_path>_hits.root.
+The file contains a TTree named PhotonHits with one row per detected photon.
+
+Branches:
+  eventID       int    — event index (0 to N_events-1); all photons from the same
+                         primary particle share this value
+  hitTime       float  — photon arrival time at the detector, in nanoseconds
+  photonOrigin  str    — photon production process; values include "Cerenkov from Muon",
+                         "Cerenkov from Electron", "Bremsstrahlung", "Scintillation",
+                         "PrimaryOpticalPhoton", and others
+  parentType    str    — type of the parent particle that produced this photon
+  parentProcess str    — Geant4 process name
+
+## Research question
+
+Can photon arrival time distributions at a Cherenkov detector module be used to
+statistically distinguish muon-induced events from electron-induced events, using
+information from a single module only? Investigate at d = 10, 20, and 25 m and
+report your findings with quantitative evidence from the simulation.
+
+Consider that a practical PID method must work on real detector data. In a real
+neutrino detector, Cherenkov photons hitting the photomultiplier tube induce a
+current that is digitized into a waveform, then folded into discrete pulses —
+each with a timestamp and an integrated charge. Typically only on the order of
+ten such pulses are reconstructed per event within the ~420 ns digitizer window.
+Any method you propose must remain statistically reliable at this pulse-count
+level.
+
+## Mandatory process — complete all five steps in order
+
+### Step 1 — Plan your plots
+Before writing any analysis code, write down what aspects of the data would be
+interesting to look at in order to find a discriminating signal. For each planned
+plot, describe: what signal you are looking for, what it would look like if present,
+and what it would look like if absent or uninformative.
+
+### Step 2 — Run simulations and generate plots
+Run all 6 configurations (3 impact parameters x 2 particle types). Execute the
+plots you planned in Step 1. Where an observable depends on a free parameter
+(e.g. a time window or threshold), sweep across several values rather than
+committing to one.
+
+Save all plots to this directory.
+
+### Step 3 — Iterate on the plots
+Review each plot for statistical signal, interesting structure, or surprising
+absences. Ask: does what you see suggest a different way to look at the data?
+Are there follow-up slices, derived quantities, or comparisons that would sharpen
+or contradict the picture? Generate those additional plots. Repeat until you feel
+the data has been sufficiently explored and you are not learning anything new from
+further plots.
+
+### Step 4 — Challenge your conclusions
+Write a section titled "What could be wrong." Looking at all the plots together,
+for each conclusion you are tempted to draw: identify one way it could be an
+artifact of your analysis choices, and one way it could fail to hold at a different
+impact parameter or in a different energy regime. If you cannot identify either,
+state explicitly why you are confident the result is robust.
+
+### Step 5 — Final conclusions
+Only after completing steps 1-4: write your conclusions. Each claim must be
+grounded in a specific plot or numerical result from your analysis.
+
+Save all output files to this directory.

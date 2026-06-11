@@ -1,0 +1,101 @@
+# Research Task
+
+You have access to a Geant4 simulation of a Cherenkov detector module in glacial ice.
+
+## How to run the simulation
+
+Run from this directory:
+  cd /Users/steveneulig/geant4_projects/IceCubeSimulation/OMSim-fork/build
+
+Command:
+  ./OMSim_WavePID_study -n 50 --detector_type 3 --environment 2 \
+      -d <impact_parameter_m> -e 40 -p <particle> \
+      -o <absolute_output_path>
+
+Parameters:
+  -p   Particle type: mu-  or  e-
+  -d   Impact parameter in meters. Run at d = 10, 20, and 25 m.
+  -n   Number of events per run. Use 50.
+  -e   Primary particle energy in GeV. Use 40.
+
+Fixed flags (always include):
+  --detector_type 3    Standard DOM
+  --environment 2      SPICE glacial ice optical model
+
+Note: do not use --multithreading. Run single-threaded only.
+Note: do not run more than 2 simulation instances concurrently. Run at most 2 in
+      parallel, wait for them to finish before starting more.
+Note: the binary must be run from the directory specified in the cd command above;
+      use absolute paths for -o.
+Note: run at most 6 simulations in total (3 impact parameters x 2 particle types).
+
+## Simulation output
+
+Each run produces a ROOT file at <output_path>_hits.root.
+The file contains a TTree named PhotonHits with one row per detected photon.
+
+Branches:
+  eventID       int    — event index (0 to N_events-1); all photons from the same
+                         primary particle share this value
+  hitTime       float  — photon arrival time at the detector, in nanoseconds
+  photonOrigin  str    — photon production process; values include "Cerenkov from Muon",
+                         "Cerenkov from Electron", "Bremsstrahlung", "Scintillation",
+                         "PrimaryOpticalPhoton", and others
+  parentType    str    — type of the parent particle that produced this photon
+  parentProcess str    — Geant4 process name
+
+## Background
+
+Cherenkov detectors distinguish particle types by exploiting differences in how
+each particle produces light in the medium. A muon at these energies is a minimum
+ionizing particle: it traverses the detector volume along an extended track of
+roughly 100-200 m, emitting Cherenkov radiation continuously along its path. The
+majority of detected photons originate from primary Cherenkov emission along this
+track. An electron, by contrast, immediately initiates a compact electromagnetic
+cascade confined to a few meters, with most light coming from secondary shower
+particles rather than from a single extended primary.
+
+This geometric difference — extended primary track versus compact shower — suggests
+two candidate observables. First, the width of the photon arrival time distribution,
+sigma(hitTime), should be larger for muon events than for electron events, reflecting
+the range of distances from which track photons originate. Second, for the
+electrons more light should generally come early, because the cascade is compact
+in space and time: all of its photons are emitted from roughly the same small
+volume and should therefore arrive within a narrow time window. This could also
+be used as a PID feature to classify electrons based on timing information.
+
+## Task
+
+Compute both observables for muons and electrons at d = 10, 20, and 25 m:
+
+**1. Per-event sigma(hitTime)**
+Group photons by eventID. For each event compute the standard deviation of hitTime
+values in that event. Report the mean per-event sigma per particle type at each impact
+parameter. Report whether sigma_mu > sigma_el consistently across d values.
+
+**2. Per-event leading-edge fraction f_early(W)**
+Group photons by eventID. For each event, find the arrival time of the first photon:
+
+  t_first = min(hitTime) over all photons in the event
+
+Then compute the fraction of photons in that event arriving within W nanoseconds
+of t_first:
+
+  f_early(W) = count(hitTime < t_first + W) / total photons in event
+
+Compute the mean f_early(W) per particle type at each d value. Sweep W across
+several values (e.g. 1, 3, 5, 10 ns) to identify which window gives the best
+separation between muon and electron events.
+
+**3. PID investigation**
+Using the results from steps 1 and 2 — and any additional quantities you find
+informative — investigate which observable or combination of observables can serve
+as a reliable PID variable for distinguishing muons from electrons at a neutrino
+detector. Consider that in a real detector only on the order of ten pulses per
+event are available within the ~420 ns digitizer window.
+
+Identify the single best observable for PID and provide a physics explanation for
+why it separates the two particle types in terms of the underlying particle and
+light production processes.
+
+Save all output files to this directory.

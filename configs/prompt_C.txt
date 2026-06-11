@@ -1,0 +1,116 @@
+# Research Task
+
+You have access to a Geant4 simulation of a Cherenkov detector module in glacial ice.
+
+## How to run the simulation
+
+Run from this directory:
+  cd /Users/steveneulig/geant4_projects/IceCubeSimulation/OMSim-fork/build
+
+Command:
+  ./OMSim_WavePID_study -n 50 --detector_type 3 --environment 2 \
+      -d <impact_parameter_m> -e 40 -p <particle> \
+      -o <absolute_output_path>
+
+Parameters:
+  -p   Particle type: mu-  or  e-
+  -d   Impact parameter in meters. Run at d = 10, 20, and 25 m.
+  -n   Number of events per run. Use 50.
+  -e   Primary particle energy in GeV. Use 40.
+
+Fixed flags (always include):
+  --detector_type 3    Standard DOM
+  --environment 2      SPICE glacial ice optical model
+
+Note: do not use --multithreading. Run single-threaded only.
+Note: do not run more than 2 simulation instances concurrently. Run at most 2 in
+      parallel, wait for them to finish before starting more.
+Note: the binary must be run from the directory specified in the cd command above;
+      use absolute paths for -o.
+Note: run at most 6 simulations in total (3 impact parameters x 2 particle types).
+
+## Simulation output
+
+Each run produces a ROOT file at <output_path>_hits.root.
+The file contains a TTree named PhotonHits with one row per detected photon.
+
+Branches:
+  eventID       int    — event index (0 to N_events-1); all photons from the same
+                         primary particle share this value
+  hitTime       float  — photon arrival time at the detector, in nanoseconds
+  photonOrigin  str    — photon production process; values include "Cerenkov from Muon",
+                         "Cerenkov from Electron", "Bremsstrahlung", "Scintillation",
+                         "PrimaryOpticalPhoton", and others
+  parentType    str    — type of the parent particle that produced this photon
+  parentProcess str    — Geant4 process name
+
+## Physics background
+
+At 40 GeV, muons behave as minimum ionizing particles (MIPs): they deposit energy
+at a low, approximately constant rate as they traverse the ice, and most detected
+light originates from the Cherenkov cone emitted continuously along the primary
+track. Cherenkov radiation in ice is emitted at a characteristic angle of
+approximately 42 degrees relative to the particle direction. This geometry means
+that only a small solid angle of the emitted cone points directly toward any given
+detector module; primary Cherenkov photons reach the DOM only from those track
+segments whose emission cone happens to be directed at the module. Light from
+other track positions can still be detected if photons are scattered in the ice
+into the appropriate direction, or if secondary interactions along the track
+produce additional light that reaches the DOM.
+
+Electrons at 40 GeV immediately initiate an electromagnetic cascade: the primary
+electron radiates bremsstrahlung photons, which produce electron-positron pairs,
+which radiate further, generating many secondary particles within a compact volume
+of a few meters. Many of these secondaries emit Cherenkov radiation. The resulting
+light yield is approximately spherical and isotropic, smeared in time as particle
+production and multiple scattering proceed within the cascade volume. The arrival
+time distribution at a single module therefore lacks the clear geometric leading
+edge present in muon events: photons arrive in a more diffuse cluster.
+
+These distinct source morphologies suggest a testable observable. Within each
+event, define t_first as the arrival time of the first detected photon:
+
+  t_first = min(hitTime)   over all photons in the event
+
+Then define the time since first photon for each subsequent photon:
+
+  delta_t = hitTime - t_first
+
+The per-event leading-edge fraction is:
+
+  f_early(W) = (number of photons with delta_t < W) / (total photons in event)
+
+for a time window W in nanoseconds. For muon events, the Cherenkov geometry
+may produce a well-defined leading cluster of near-direct photons, so f_early(W)
+may be elevated for small W. For electron events, the isotropic cascade yields no
+dominant leading cluster, so f_early(W) may be suppressed. Whether and at which
+d values this separation holds is the empirical question. This observable requires
+only hitTime and the ability to group photons by event using eventID.
+
+## Practical constraint
+
+In a real neutrino detector, Cherenkov photons hitting the photomultiplier tube
+induce a current that is digitized into a waveform, then folded into discrete
+pulses — each with a timestamp and an integrated charge. Typically only on the
+order of ten such pulses are reconstructed per event within the ~420 ns digitizer
+window. Any method you propose must remain statistically reliable at this
+pulse-count level.
+
+## Task
+
+1. Compute f_early(W) for muons and electrons at d = 10, 20, and 25 m for several
+   window values W (e.g. 1, 2, 5, 10 ns). Identify the window that maximises
+   separation between particle types.
+
+2. Assess whether f_early reliably separates muon from electron events across all
+   three impact parameters. Quantify the separation at each d value.
+
+3. Compare f_early to sigma(hitTime) as discriminants. Under what conditions does
+   each observable succeed or fail, and which is more robust across impact parameters?
+
+4. Identify limitations or failure modes of f_early (e.g. sensitivity to window
+   choice, behaviour at low photon counts, dependence on d).
+
+Report your findings with quantitative evidence from the simulation.
+
+Save all output files to this directory.

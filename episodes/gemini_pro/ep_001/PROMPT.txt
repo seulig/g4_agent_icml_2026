@@ -1,0 +1,65 @@
+# Research Task
+
+You have access to a Geant4 simulation of a Cherenkov detector module in glacial ice.
+
+## How to run the simulation
+
+Run from this directory:
+  cd /Users/steveneulig/geant4_projects/IceCubeSimulation/OMSim-fork/build
+
+Command:
+  ./OMSim_WavePID_study -n 50 --detector_type 3 --environment 2 \
+      -d <impact_parameter_m> -e 40 -p <particle> \
+      -o <absolute_output_path>
+
+Parameters:
+  -p   Particle type: mu-  or  e-
+  -d   Impact parameter in meters (perpendicular distance from particle track to
+       detector center). Explore values in the range 10–25 m.
+  -n   Number of events per run. Use 50.
+  -e   Primary particle energy in GeV. Use 40.
+
+Fixed flags (always include):
+  --detector_type 3    Standard DOM
+  --environment 2      SPICE glacial ice optical model
+
+Note: do not use --multithreading. Run single-threaded only.
+Note: do not run more than 2 simulation instances concurrently. Run at most 2 in
+      parallel, wait for them to finish before starting more.
+Note: the binary must be run from the directory specified in the cd command above;
+      use absolute paths for -o.
+Note: run at most 6 simulations in total (for example, 3 impact parameters for
+      each of the 2 particle types).
+
+## Simulation output
+
+Each run produces a ROOT file at <output_path>_hits.root.
+The file contains a TTree named PhotonHits with one row per detected photon.
+
+Branches:
+  eventID       int    — event index (0 to N_events-1); all photons from the same
+                         primary particle share this value
+  hitTime       float  — photon arrival time at the detector, in nanoseconds
+  photonOrigin  str    — photon production process; values include "Cerenkov from Muon",
+                         "Cerenkov from Electron", "Bremsstrahlung", "Scintillation",
+                         "PrimaryOpticalPhoton", and others
+  parentType    str    — type of the parent particle that produced this photon
+  parentProcess str    — Geant4 process name
+
+## Research question
+
+Can photon arrival time distributions at a Cherenkov detector module be used to
+statistically distinguish muon-induced events from electron-induced events, using
+information from a single module only? Investigate systematically across several
+impact parameters in the range 10–25 m and report your findings with quantitative
+evidence from the simulation.
+
+Consider that a practical PID method must work on real detector data. In a real
+neutrino detector, Cherenkov photons hitting the photomultiplier tube induce a
+current that is digitized into a waveform, then folded into discrete pulses —
+each with a timestamp and an integrated charge. Typically only on the order of
+ten such pulses are reconstructed per event within the ~420 ns digitizer window.
+Any method you propose must remain statistically reliable at this pulse-count
+level.
+
+Save all output files to this directory.
